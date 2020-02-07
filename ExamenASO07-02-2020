@@ -1,0 +1,79 @@
+############## Grupos y unidades organizativas ###################
+
+Foreach ($elemento in Get-Content C:\Cursos.txt)
+{
+    if($elemento.Split(",")[1])
+    {
+        ################ Grupos ####################
+        New-LocalGroup -Name $elemento.Split(",")[0]
+        New-LocalGroup -Name $elemento.Split(",")[1]
+        New-LocalGroup -Name $elemento.Split(",")[2]
+        New-LocalGroup -Name $elemento.Split(",")[3]
+        New-LocalGroup -Name $elemento.Split(",")[4]
+        New-LocalGroup -Name $elemento.Split(",")[5]
+
+        ########### Unidades Organizativas #########
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[0]
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[1]
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[2]
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[3]
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[4]
+        New-ADOrganizationalUnit -Name $elemento.Split(",")[5]
+        New-ADOrganizationalUnit -Name Deshabilitados
+
+
+    }
+}
+
+############################# Usuarios #########################
+
+Foreach ($elemento in Get-Content C:\Users.txt)
+{
+    if($elemento.Split(",")[1])
+    {
+        ################ Usuarios ####################
+        New-ADUser -Name $elemento.Split(",")[0] -Path "OU=Asir,DC=Andel,DC=local"
+        New-ADUser -Name $elemento.Split(",")[1] -Path "OU=Eso,DC=Andel,DC=local"
+        New-ADUser -Name $elemento.Split(",")[2] -Path "OU=Primaria,DC=Andel,DC=local"
+        New-ADUser -Name $elemento.Split(",")[3] -Path "OU=Teleco,DC=Andel,DC=local"
+        New-ADUser -Name $elemento.Split(",")[4] -Path "OU=Smir,DC=Andel,DC=local"
+        New-ADUser -Name $elemento.Split(",")[5] -Path "OU=EleMedi,DC=Andel,DC=local"
+    }
+
+    ################# Deshabilitar usuarios #########################
+
+    $sesion = Get-ADUser -Filter 'Name -like $elemento.Split(",")[0..5]' | %{ 
+                ($_ | Get-ADObject -Properties lastLogon).lastlogon
+                $dt = [DateTime]::FromFileTime(($_ | Get-ADObject -Properties lastLogon).lastlogon) 
+                Write-Host $_ "Ultimo inicio:" $dt}
+    
+    If ($sesion = 10)
+    {
+       $List = Get-Content -Path "C:\Users.txt"
+       $TargetOU = "OU=Deshabilitados,DC=Dominio,DC=Andel"
+       For ($i=0;$i -it $list.count;$i++) 
+       {
+       $move = $list[$i]
+       $users = Get-ADUser -Filter {Name -like $move}
+       Move-ADObject $users.DistinguishedName -TargetPath $TargetOU
+       }
+    }
+}
+
+################### Eliminar UO #########################
+
+Remove-ADOrganizationalUnit
+
+####################################################################################################################################
+
+
+
+################## Controlar que ejecuta menos de 10 procesos ###############
+
+$procesos = (Get-Process).count
+
+If ($procesos > 10){
+
+    Stop-Process
+
+}
